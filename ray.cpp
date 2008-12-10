@@ -181,6 +181,17 @@ float d_shpere(const sphere& sp, vec3 pos)
   return distance(sp.pos - pos) - sp.r;
 }
 
+float distanceToBox(const vec3& p, float a, float b, float c )
+{
+  const float dx = max( fabsf( p.x )-a, 0.0f );
+  const float dy = max( fabsf( p.y )-b, 0.0f );
+  const float dz = max( fabsf( p.z )-c, 0.0f );
+
+  return( sqrtf(dx*dx + dy*dy + dz*dz) );
+   
+}
+
+
 float scene(const vec3& pp)
 {
 const int NN = 4;
@@ -190,14 +201,17 @@ const int NN = 4;
 //
  const float s = 0.5f;
  const float h = 0.1f;
- float m = pp.z -  0.1f*(1.0f - step(h,mod(s,fabs(pp.x)))*step(h,mod(s, fabs(p.y))));
+ float m = pp.z;// -  0.1f*(1.0f - step(h,mod(s,fabs(pp.x)))*step(h,mod(s, fabs(p.y))));
 
+ m = min(m, distanceToBox(pp - vec3(0.0f,0.0f,0.52f), 0.5f, 0.5f, 0.5f));
+ return m;
 
+  
  for(int i = 0; i < NN; ++i)
  {
  	for(int j = 0; j < NN ; ++j)
 	{
-		m = min(m, d_shpere(sph[0], p + vec3(float(i),float(j),0.0f)));
+		m = min(m, min(distanceToBox(p, 0.5f, 0.5f, 0.5f),d_shpere(sph[0], p + vec3(float(i),float(j),0.0f))));
 	}
  }
  return m;
@@ -225,7 +239,7 @@ float ao(const vec3& p, const vec3& normal)
 
 float shadow(const vec3 p, const vec3 lpos)
 {
-	const int N = 5;
+	const int N = 4;
 	float d = distance(lpos - p);
 	vec3 dir = normalize(lpos - p);
 	//d /= float(N);
@@ -235,7 +249,7 @@ float shadow(const vec3 p, const vec3 lpos)
 		float delta = d/float(2<<(N - i -1 ));
 		float dist = scene(p + delta * dir);
 		//if(fabs(dist - delta) > 0.0005f)
-		if(dist - delta < 0.0105f)
+		if(dist - delta < 0.0025f)
 			s-= dist/(d*float(1 << ( i)));
 	
 	}
@@ -251,7 +265,7 @@ vec3 raycast(const vec3 p, const vec3 dir, vec3* normal, int depth = 0)
   if (fabs(dist) < 0.005f)
   {
     
-    const float eps = 0.01f;
+    const float eps = 0.005f;
     *normal = normalize(vec3( 
         scene(p + vec3(eps, 0.0f, 0.0f)) - scene(p - vec3(eps, 0.0f, 0.0f)),
         scene(p + vec3(0.0f, eps, 0.0f)) - scene(p - vec3(0.0f, eps, 0.0f)),
@@ -322,7 +336,7 @@ int render(vec3 campos, const char* fname)
         float ff  = max(dot(normalize(lpos -inter ), n), 0.0f);
         float s = shadow(inter, lpos);
         f = (s*a*a*0.8 + 0.1*ff);
-        f = a*0.8f + 0.1f*ff;
+        //f = a*0.8f + 0.1f*ff;
         f = min(f,1.0f);
         pixels[(j*w + i)*3] = 255 *f;
         pixels[(j*w + i)*3 + 1] = 255*f;
