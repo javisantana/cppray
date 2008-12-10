@@ -146,6 +146,23 @@ inline float mod(float a,float t)
 	return _frac(t/a);
 }
 
+int seed = 1;
+float randf( void )
+{
+    unsigned int a;
+
+    seed *= 16807;
+
+    a = (seed&0x007fffff) | 0x40000000;
+
+    return( *((float*)&a) - 3.0f );
+}
+
+float rand01()
+{
+  return 0.5f*(randf() + 1.0f);
+}
+
 
 struct sphere 
 {
@@ -194,7 +211,7 @@ float distanceToBox(const vec3& p, float a, float b, float c )
 
 float scene(const vec3& pp)
 {
-const int NN = 4;
+const int NN = 10;
  vec3 p  = pp;
 //  printf("%f,",pp.x);
 //  printf("%f,%f\n",pp.x, _frac(pp.x));
@@ -203,15 +220,15 @@ const int NN = 4;
  const float h = 0.1f;
  float m = pp.z;// -  0.1f*(1.0f - step(h,mod(s,fabs(pp.x)))*step(h,mod(s, fabs(p.y))));
 
- m = min(m, distanceToBox(pp - vec3(0.0f,0.0f,0.52f), 0.5f, 0.5f, 0.5f));
- return m;
 
-  
+ seed = 40;  
  for(int i = 0; i < NN; ++i)
  {
  	for(int j = 0; j < NN ; ++j)
 	{
-		m = min(m, min(distanceToBox(p, 0.5f, 0.5f, 0.5f),d_shpere(sph[0], p + vec3(float(i),float(j),0.0f))));
+		//m = min(m, min(distanceToBox(p, 0.5f, 0.5f, 0.5f),d_shpere(sph[0], p + vec3(float(i),float(j),0.0f))));
+    float ll = 0.10f +  0.3f* rand01();
+    m = min(m, distanceToBox(pp - vec3(i*.5f,j*.5f,ll + .01f), ll, ll, ll));
 	}
  }
  return m;
@@ -297,7 +314,7 @@ int render(vec3 campos, const char* fname)
   int h = 400;
  
   byte* pixels = new byte[w*h*3];
-  vec3 lookat;
+  vec3 lookat(0.0f,0.0f,1.0f);
   vec3 d = lookat - campos;
   vec3 r = normalize(cross(d, vec3(0.0f, 0.0f, 1.0f)));
   vec3 up = normalize(cross(r, d));
@@ -335,9 +352,10 @@ int render(vec3 campos, const char* fname)
         float a = ao(inter, n);
         float ff  = max(dot(normalize(lpos -inter ), n), 0.0f);
         float s = shadow(inter, lpos);
-        f = (s*a*a*0.8 + 0.1*ff);
+        f = s*(a*1.4f + 0.3*ff);
         //f = a*0.8f + 0.1f*ff;
         f = min(f,1.0f);
+
         pixels[(j*w + i)*3] = 255 *f;
         pixels[(j*w + i)*3 + 1] = 255*f;
         pixels[(j*w + i)*3 + 2] = 255*f;
@@ -378,7 +396,7 @@ int main()
   //for(int i = 0; i<1; ++i)
   {
     //sprintf(fname,"m\\movie_%03d.tga", i);
-    vec3 campos(-100.0f*cos(i*PI/180.0f), -100.0f*sin(i*PI/180.0f), 50.0f);
+    vec3 campos(-100.0f*cos(i*PI/180.0f), -100.0f*sin(i*PI/180.0f), 20.0f);
     render(campos,"shot2.tga");
 
   }
