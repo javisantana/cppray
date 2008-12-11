@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <math.h>
 
+
+#ifdef WIN32
+#include <process.h>
+#endif
+
 inline float floor(float x)
 {
   return (float)(int)x;
@@ -211,7 +216,7 @@ float distanceToBox(const vec3& p, float a, float b, float c )
 
 float scene(const vec3& pp)
 {
-const int NN = 10;
+const int NN = 2;
  vec3 p  = pp;
 //  printf("%f,",pp.x);
 //  printf("%f,%f\n",pp.x, _frac(pp.x));
@@ -220,6 +225,7 @@ const int NN = 10;
  const float h = 0.1f;
  float m = pp.z;// -  0.1f*(1.0f - step(h,mod(s,fabs(pp.x)))*step(h,mod(s, fabs(p.y))));
 
+ return m;
 
  seed = 40;  
  for(int i = 0; i < NN; ++i)
@@ -256,6 +262,20 @@ float ao(const vec3& p, const vec3& normal)
 
 float shadow(const vec3 p, const vec3 lpos)
 {
+	const int N = 6;
+	float d = distance(lpos - p);
+	vec3 dir = normalize(lpos - p);
+	d /= float(N);
+	float s = 0.0f;
+	for(int i = 0; i<N; ++i)
+	{
+		float delta = i*delta;
+		float dist = scene(p + delta * dir);
+    s+= dist/delta;
+  }
+  return s/N;
+
+#if 0
 	const int N = 4;
 	float d = distance(lpos - p);
 	vec3 dir = normalize(lpos - p);
@@ -266,13 +286,14 @@ float shadow(const vec3 p, const vec3 lpos)
 		float delta = d/float(2<<(N - i -1 ));
 		float dist = scene(p + delta * dir);
 		//if(fabs(dist - delta) > 0.0005f)
-		if(dist - delta < 0.0025f)
+		if(delta > dist && dist  < 1.01f)
 			s-= dist/(d*float(1 << ( i)));
 	
 	}
 	//printf("%f // %f\n", s, d);
   return max(1.0f - s, 0.0f);
 	//return float(s)/float(d);
+#endif
 }
 
 vec3 raycast(const vec3 p, const vec3 dir, vec3* normal, int depth = 0)
@@ -355,6 +376,7 @@ int render(vec3 campos, const char* fname)
         f = s*(a*1.4f + 0.3*ff);
         //f = a*0.8f + 0.1f*ff;
         f = min(f,1.0f);
+        f = s;
 
         pixels[(j*w + i)*3] = 255 *f;
         pixels[(j*w + i)*3 + 1] = 255*f;
